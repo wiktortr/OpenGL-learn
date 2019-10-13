@@ -1,9 +1,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h"
 #include "shader.h"
+#include "texture.h"
+#include <iostream>
+
+static float mixFactor = 0.2f;
+bool r = false;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+
 void processInput(GLFWwindow *window);
 
 const unsigned int SCR_WIDTH = 800;
@@ -48,6 +53,7 @@ int main() {
 		0, 1, 3, // first triangle
 		1, 2, 3  // second triangle
 	};
+
 	unsigned int VBO, VAO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -73,27 +79,13 @@ int main() {
 
 	///----------------------------------------------------------------------------------
 
-	stbi_set_flip_vertically_on_load(true);
+	Texture2D texture1("textures/c2.jpg", GL_RGB, 0, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+	texture1.setUniformName("ourTexture1");
+	texture1.setUniformLocate(shader, 0);
 
-	GLuint texture;
-	int width, height, nrChannels;
-
-	glGenTextures(1, &texture);
-
-	glBindTexture(GL_TEXTURE_2D, texture);					   
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	unsigned char* data = stbi_load("textures/wood.jpg", &width, &height, &nrChannels, 0);
-	if (data) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else {
-		std::cout << "Failed to load texture\n";
-	}
-	stbi_image_free(data);
+	Texture2D texture2("textures/c4.jpg", GL_RGB, 0, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+	texture1.setUniformName("ourTexture2");
+	texture1.setUniformLocate(shader, 1);
 
 	///----------------------------------------------------------------------------------
 
@@ -104,8 +96,9 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture);
+		texture1.bindTexture();
+		texture2.bindTexture();
+		shader.setf("mixFactor", mixFactor);
 		
 		shader.use();
 		glBindVertexArray(VAO);
@@ -123,10 +116,35 @@ int main() {
 	return 0;
 }
 
-void processInput(GLFWwindow *window)
-{
+void processInput(GLFWwindow *window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+		if (r) {
+			mixFactor -= 0.001f;
+			if (mixFactor <= 0.f)
+				r = false; 
+		}
+		else {
+			mixFactor += 0.001f;
+			if (mixFactor >= 1.f)
+				r = true;
+		}
+	}
+	
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+		if (r) {
+			mixFactor += 0.001f;
+			if (mixFactor >= 1.f)
+				r = false;
+		}
+		else {
+			mixFactor -= 0.001f;
+			if (mixFactor <= 0.f)
+				r = true;
+		}
+	}
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
