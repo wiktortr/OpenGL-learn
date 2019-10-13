@@ -12,7 +12,7 @@ private:
 	GLuint m_ID;
 	int m_width;
 	int m_height;
-	int m_desiredChannels; 
+	int m_numberOfChannels; 
 	std::string m_uniformTextureName; 
 	int m_uniformTextureLocate; 
 
@@ -21,9 +21,16 @@ public:
 		GLint wrapx, GLint wrapy, GLint minFilter, GLint maxFilter); 
 
 	GLuint getID() const;
+	int getWidth() const; 
+	int getHeight() const;
+	int getNumberOfChannels() const;
+
 	void setUniformName(const std::string& name);
 	void setUniformLocate(Shader& shader, int locate);
 	void bindTexture() const; 
+
+public:
+	static void init(); 
 };
 
 #endif

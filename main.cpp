@@ -4,15 +4,17 @@
 #include "texture.h"
 #include <iostream>
 
-static float mixFactor = 0.2f;
-bool r = false;
+///project vars:
+const float FactorSteep = 0.001f; 
+float mixFactor = 0.2f;
+bool reverseFactor = false;
+///---///
+
+constexpr unsigned int SCR_WIDTH = 800;
+constexpr unsigned int SCR_HEIGHT = 600;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-
 void processInput(GLFWwindow *window);
-
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
 
 int main() {
 	glfwInit();
@@ -24,23 +26,22 @@ int main() {
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
 	#endif
 
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-	if (window == NULL)
-	{
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GLFWindow", NULL, NULL);
+	if (window == nullptr) {
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
+
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cerr << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
 
-	Shader shader("shaders/vshader.glsl", "shaders/fshader.glsl");
+	///----------------------------------------------------------------------------------
 
 	float vertices[] = {
 		// positions          // colors           // texture coords
@@ -54,7 +55,8 @@ int main() {
 		1, 2, 3  // second triangle
 	};
 
-	unsigned int VBO, VAO, EBO;
+	GLuint VBO, VAO, EBO;
+
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -79,11 +81,15 @@ int main() {
 
 	///----------------------------------------------------------------------------------
 
-	Texture2D texture1("textures/c2.jpg", GL_RGB, 0, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+	Shader shader("shaders/vshader.glsl", "shaders/fshader.glsl");
+
+	Texture2D::init(); 
+
+	Texture2D texture1("textures/c2.jpg", GL_RGB, 3, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
 	texture1.setUniformName("ourTexture1");
 	texture1.setUniformLocate(shader, 0);
 
-	Texture2D texture2("textures/c4.jpg", GL_RGB, 0, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+	Texture2D texture2("textures/c4.jpg", GL_RGB, 3, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
 	texture1.setUniformName("ourTexture2");
 	texture1.setUniformLocate(shader, 1);
 
@@ -121,28 +127,28 @@ void processInput(GLFWwindow *window) {
 		glfwSetWindowShouldClose(window, true);
 
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		if (r) {
-			mixFactor -= 0.001f;
+		if (reverseFactor) {
+			mixFactor -= FactorSteep;
 			if (mixFactor <= 0.f)
-				r = false; 
+				reverseFactor = false; 
 		}
 		else {
-			mixFactor += 0.001f;
+			mixFactor += FactorSteep;
 			if (mixFactor >= 1.f)
-				r = true;
+				reverseFactor = true;
 		}
 	}
 	
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		if (r) {
-			mixFactor += 0.001f;
+		if (reverseFactor) {
+			mixFactor += FactorSteep;
 			if (mixFactor >= 1.f)
-				r = false;
+				reverseFactor = false;
 		}
 		else {
-			mixFactor -= 0.001f;
+			mixFactor -= FactorSteep;
 			if (mixFactor <= 0.f)
-				r = true;
+				reverseFactor = true;
 		}
 	}
 }
