@@ -294,9 +294,6 @@ VertexBufferManagement* loadModelFromFile(const std::string& filename, char* ver
 	model->saveAllToBuffer(); 
 	model->setBufferAttributes(); 
 
-	delete[] vertexDataPointer;
-	delete[] elementDataPointer;
-
 	return model; 
 }
 
