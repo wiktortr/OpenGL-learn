@@ -1,20 +1,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "shader.h"
-#include "texture.h"
 #include <iostream>
+#include "VertexBuffer.h"
+#include "shader.h"
 
-///project vars:
-const float FactorSteep = 0.001f; 
-float mixFactor = 0.2f;
-bool reverseFactor = false;
-///---///
-
-constexpr unsigned int SCR_WIDTH = 800;
-constexpr unsigned int SCR_HEIGHT = 600;
+#include <fstream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
+
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
+
+///-------------------------------------------------------------------------------------------
 
 int main() {
 	glfwInit();
@@ -23,12 +21,12 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	#ifdef __APPLE__
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	#endif
 
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GLFWindow", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == nullptr) {
-		std::cout << "Failed to create GLFW window" << std::endl;
+		std::cout << "Failed to create GLFW window\n";
 		glfwTerminate();
 		return -1;
 	}
@@ -37,122 +35,85 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cerr << "Failed to initialize GLAD" << std::endl;
+		std::cout << "Failed to initialize GLAD\n";
 		return -1;
 	}
 
-	///----------------------------------------------------------------------------------
+	glEnable(GL_DEPTH_TEST);
 
-	float vertices[] = {
-		// positions          // colors           // texture coords
-		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-		0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+	Shader shader("shaders/vshader2.glsl", "shaders/fshader2.glsl");
+
+	/*
+	std::vector<float> vertices = {
+		-0.5f,  0.25f, 0.f, 240.f, 157.f, 2.f, 255.f, //0
+		 0.5f,  0.25f, 0.f, 240.f, 157.f, 2.f, 255.f, //1
+		 0.5f, -0.75f, 0.f, 240.f, 157.f, 2.f, 255.f, //2
+		-0.5f, -0.75f, 0.f, 240.f, 157.f, 2.f, 255.f, //3
+		-0.5f,  0.25f, 0.f, 240.f, 157.f, 2.f, 255.f, //4
+		0.5f,  0.25f, 0.f,  240.f, 157.f, 2.f, 255.f, //5
+		 0.f,   0.75f, 0.f, 240.f, 157.f, 2.f, 255.f, //6
 	};
-	unsigned int indices[] = {
-		0, 1, 3, // first triangle
-		1, 2, 3  // second triangle
+
+	std::vector<unsigned> indicies {
+		0, 1, 3, 1, 2, 3, 4, 5, 6
 	};
 
-	GLuint VBO, VAO, EBO;
+	VertexBufferManagement vao(DrawMode::Triangles, {
+		VertexBufferAttribute("position", DataType::Float, 3),
+		VertexBufferAttribute("color", DataType::Float, 4),
+	});
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	vao.setVertexDataPointer(reinterpret_cast<VertexBufferManagement::BytesPtr>(vertices.data()),
+		vertices.size() * sizeof(float));
+	vao.setElementDataPointer(reinterpret_cast<VertexBufferManagement::BytesPtr>(indicies.data()),
+		indicies.size() * sizeof(unsigned), DataType::UInt);
 
-	glBindVertexArray(VAO);
+	vao.saveAllToBuffer();
+	vao.setBufferAttributes();
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	saveModelToFile("model.omod", vao);
+	*/
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	char* vertexDataPointer = nullptr;
+	char* elementDataPointer = nullptr; 
+	auto vao = loadModelFromFile("model.omod", vertexDataPointer, elementDataPointer);
 
-	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	// texture coord attribute
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
+	shader.use();
+	shader.seti("pos", 0);
+	shader.seti("col", 1);
 
-	///----------------------------------------------------------------------------------
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	while (!glfwWindowShouldClose(window)) {
 
-	Shader shader("shaders/vshader.glsl", "shaders/fshader.glsl");
-
-	Texture2D::init(); 
-
-	Texture2D texture1("textures/c2.jpg", GL_RGB, 3, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
-	texture1.setUniformName("ourTexture1");
-	texture1.setUniformLocate(shader, 0);
-
-	Texture2D texture2("textures/c4.jpg", GL_RGB, 3, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
-	texture1.setUniformName("ourTexture2");
-	texture1.setUniformLocate(shader, 1);
-
-	///----------------------------------------------------------------------------------
-
-	while (!glfwWindowShouldClose(window))
-	{
 		processInput(window);
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		texture1.bindTexture();
-		texture2.bindTexture();
-		shader.setf("mixFactor", mixFactor);
-		
-		shader.use();
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		shader.use(); 
+
+		//vao.draw();
+		vao->draw(); 
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
-
 	glfwTerminate();
 	return 0;
 }
 
+///-------------------------------------------------------------------------------------------
+
 void processInput(GLFWwindow *window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		if (reverseFactor) {
-			mixFactor -= FactorSteep;
-			if (mixFactor <= 0.f)
-				reverseFactor = false; 
-		}
-		else {
-			mixFactor += FactorSteep;
-			if (mixFactor >= 1.f)
-				reverseFactor = true;
-		}
-	}
-	
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		if (reverseFactor) {
-			mixFactor += FactorSteep;
-			if (mixFactor >= 1.f)
-				reverseFactor = false;
-		}
-		else {
-			mixFactor -= FactorSteep;
-			if (mixFactor <= 0.f)
-				reverseFactor = true;
-		}
-	}
 }
+
+///-------------------------------------------------------------------------------------------
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
+
+
